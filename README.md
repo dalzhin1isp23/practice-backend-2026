@@ -1,6 +1,6 @@
 <h1>Тема - Сервис для выполнения опросов</h1>
 <h2>Автор - Далжин Яков</h2>
- стек -  node+express+prisma
+ стек -  node+express+prisma+Typescript
 Роли:
 <ol>
     <li><strong>RESPONDENT</strong> (Респондент)
