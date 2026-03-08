@@ -2,7 +2,7 @@
   "name": "survey_dalzhin",
   "version": "1.0.0",
   "description": "<h1>Тема - Сервис для выполнения опросов</h1> <h2>Автор - Далжин Яков</h2>",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

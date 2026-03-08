@@ -1,7 +1,8 @@
 <h1>Тема - Сервис для выполнения опросов</h1>
 <h2>Автор - Далжин Яков</h2>
- стек -  node+express+prisma+Typescript
-Роли:
+<p>стек - node+express+prisma+Typescript</p>
+
+<h3>Роли:</h3>
 <ol>
     <li><strong>RESPONDENT</strong> (Респондент)
         <ul>
@@ -24,4 +25,44 @@
         </ul>
     </li>
 </ol>
-<image src="schema.png" alt="cхема внутри папки">
+
+<img src="schema.png" alt="cхема внутри папки">
+
+<h3>Эндпоинты:</h3>
+<ol>
+    <li><strong>Авторизация и Профиль</strong>
+        <ul>
+            <li>POST - /auth/register - Регистрация нового пользователя</li>
+            <li>POST - /auth/login - Вход в систему</li>
+            <li>POST - /auth/logout - Выход из системы</li>
+            <li>GET - /profile - Получение информации о пользователе</li>
+            <li>PATCH - /profile - Обновление данных профиля</li>
+        </ul>
+    </li>
+    <li><strong>Опросы (Публичные / Респондент)</strong>
+        <ul>
+            <li>GET - /surveys - Вывод списка всех опубликованных опросов</li>
+            <li>GET - /surveys/:id - Получение информации конкретного опроса</li>
+            <li>GET - /surveys/:name - Поиск опроса по уникальному имени</li>
+            <li>POST - /surveys/:id/submit - Отправка ответов на опрос</li>
+            <li>GET - /surveys/:id/status - Проверка статуса прохождения (доступен/пройден)</li>
+        </ul>
+    </li>
+    <li><strong>Управление опросами (Автор)</strong>
+        <ul>
+            <li>GET - /surveys/my - Список опросов, созданных текущим автором</li>
+            <li>POST - /surveys - Создание нового опроса (Черновик)</li>
+            <li>PATCH - /surveys/:id - Редактирование опроса (вопросы, текст)</li>
+            <li>POST - /surveys/:id/publish - Публикация опроса (Черновик → Опубликовано)</li>
+            <li>POST - /surveys/:id/close - Закрытие опроса (Опубликовано → Закрыт)</li>
+            <li>DELETE - /surveys/:id - Удаление или архивация опроса</li>
+        </ul>
+    </li>
+    <li><strong>Аналитика и Результаты (Автор)</strong>
+        <ul>
+            <li>GET - /surveys/:id/analytics - Статистика по опросу (проценты, количество)</li>
+            <li>GET - /surveys/:id/export - Экспорт результатов опроса в JSON</li>
+            <li>GET - /surveys/:id/responses - Просмотр детальных ответов респондентов</li>
+        </ul>
+    </li>
+</ol>
