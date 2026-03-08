@@ -1,0 +1,86 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  
+  surveys   Survey[] @relation("AuthorSurveys")
+
+  votes     Vote[]
+}
+
+
+model Status {
+  id      Int      @id @default(autoincrement())
+  name    String   @unique
+  surveys Survey[]
+}
+
+model Type {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique 
+  questions Question[]
+}
+
+
+model Survey {
+  id          Int        @id @default(autoincrement())
+  name        String
+  description String
+
+  statusId    Int
+  status      Status     @relation(fields: [statusId], references: [id])
+
+  authorId    Int
+  author      User       @relation("AuthorSurveys", fields: [authorId], references: [id])
+  
+  questions   Question[]
+  votes       Vote[]
+}
+
+
+model Question {
+  id       Int      @id @default(autoincrement())
+
+  typeId   Int
+  type     Type     @relation(fields: [typeId], references: [id])
+  order    Int      // Порядок отображения
+  text     String
+  
+  surveyId Int
+  survey   Survey   @relation(fields: [surveyId], references: [id])
+  
+  options  Option[]
+}
+
+
+model Option {
+  id         Int      @id @default(autoincrement())
+  text       String
+
+  questionId Int
+  question   Question @relation(fields: [questionId], references: [id])
+  order      Int      
+}
+
+
+model Vote {
+  id       Int      @id @default(autoincrement())
+  answer   Json    
+  surveyId Int
+  survey   Survey   @relation(fields: [surveyId], references: [id])
+  
+  userId   Int
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@unique([surveyId, userId])
+}
