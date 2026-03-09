@@ -193,3 +193,143 @@ export const submitVote = async (req: any, res: any) => {
     res.status(500).json({ error: "Ошибка при отправке ответов" });
   }
 };
+
+export const getSurveyResponses = async (req: any, res: any) => {
+  const { id } = req.params;
+  const authorId = req.user.userId;
+
+  const survey = await prisma.survey.findUnique({ where: { id: Number(id) } });
+  if (!survey || survey.authorId !== authorId) return res.status(403).json({ error: "Доступ запрещен" });
+
+  const votes = await prisma.vote.findMany({
+    where: { surveyId: Number(id) },
+    include: { user: { select: { name: true, email: true } } }
+  });
+  res.json(votes);
+};
+
+export const exportSurveyResults = async (req: any, res: any) => {
+  const { id } = req.params;
+  const authorId = req.user.userId;
+
+  const survey = await prisma.survey.findUnique({
+    where: { id: Number(id) },
+    include: { 
+      questions: { include: { options: true } },
+      votes: true 
+    }
+  });
+
+  if (!survey || survey.authorId !== authorId) return res.status(403).json({ error: "Доступ запрещен" });
+  res.json(survey);
+};
+
+export const getSurveyAnalytics = async (req: any, res: any) => {
+  const { id } = req.params;
+
+  try {
+    const survey = await prisma.survey.findUnique({
+      where: { id: Number(id) },
+      include: {
+        questions: {
+          include: { options: true }
+        },
+        votes: true
+      }
+    });
+
+    if (!survey) return res.status(404).json({ error: "Опрос не найден" });
+
+    const totalVotes = survey.votes.length;
+    
+
+    const stats = survey.questions.map(question => {
+      const questionAnswers = survey.votes.map((v: any) => v.answer).flat();
+      
+
+      const optionsStats = question.options.map(opt => {
+        const count = questionAnswers.filter((a: any) => 
+          a.questionId === question.id && (a.optionId === opt.id || a.optionIds?.includes(opt.id))
+        ).length;
+
+        return {
+          optionText: opt.text,
+          count,
+          percentage: totalVotes > 0 ? ((count / totalVotes) * 100).toFixed(1) + '%' : '0%'
+        };
+      });
+
+      return {
+        questionText: question.text,
+        typeId: question.typeId,
+        results: optionsStats
+      };
+    });
+
+    res.json({
+      surveyName: survey.name,
+      totalParticipants: totalVotes,
+      analytics: stats
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Ошибка при расчете аналитики" });
+  }
+};
+
+export const getAllPublicSurveys = async (req: any, res: any) => {
+
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const surveys = await prisma.survey.findMany({
+    where: { 
+      statusId: 2, 
+      NOT: { authorId: req.user.userId } 
+    },
+    include: { author: { select: { name: true } } },
+    orderBy: { createdAt: 'desc' },
+    skip: skip,
+    take: limit
+  });
+
+  const total = await prisma.survey.count({ where: { statusId: 2 } });
+
+  res.json({
+    data: surveys,
+    meta: {
+      total,
+      page,
+      lastPage: Math.ceil(total / limit)
+    }
+  });
+};
+
+export const getAllPublicSurveys = async (req: any, res: any) => {
+
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+  const skip = (page - 1) * limit;
+
+  const surveys = await prisma.survey.findMany({
+    where: { 
+      statusId: 2, 
+      NOT: { authorId: req.user.userId } 
+    },
+    include: { author: { select: { name: true } } },
+    orderBy: { createdAt: 'desc' }, 
+    skip: skip,
+    take: limit
+  });
+
+  const total = await prisma.survey.count({ where: { statusId: 2 } });
+
+  res.json({
+    data: surveys,
+    meta: {
+      total,
+      page,
+      lastPage: Math.ceil(total / limit)
+    }
+  });
+};

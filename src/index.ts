@@ -1,22 +1,21 @@
 import 'dotenv/config';
 import express from 'express';
-import { register, login ,getProfile ,updateProfile} from './function/auth.ts';
+import { register, login, getProfile, updateProfile } from './function/auth.ts';
 import { authenticateToken } from './function/token.ts';
-import { getMySurveys, createSurvey, publishSurvey, closeSurvey, deleteSurvey,getAllPublicSurveys, getSurveyById, getSurveyByName , submitVote ,getSurveyStatus, updateSurvey} from './function/survey';
+import { getMySurveys, createSurvey, publishSurvey, closeSurvey, deleteSurvey, getAllPublicSurveys,  getSurveyById, getSurveyByName, submitVote, getSurveyStatus,  updateSurvey, getSurveyResponses, exportSurveyResults, getSurveyAnalytics } from './function/survey';
+
 const app = express();
 app.use(express.json());
-
 
 app.post('/api/auth/register', register);
 app.post('/api/auth/login', login);
 app.post('/api/auth/logout', (req, res) => res.json({ msg: "Token invalidated by client" }));
 
-
 app.get('/api/profile', authenticateToken, getProfile);
 app.patch('/api/profile', authenticateToken, updateProfile);
 
 
-app.get('/api/surveys', authenticateToken, getAllPublicSurveys);
+app.get('/api/surveys', authenticateToken, getAllPublicSurveys); 
 app.get('/api/surveys/:id', authenticateToken, getSurveyById);
 app.get('/api/surveys/search/:name', authenticateToken, getSurveyByName);
 app.post('/api/surveys/:id/submit', authenticateToken, submitVote);
@@ -31,4 +30,9 @@ app.post('/api/surveys/:id/close', authenticateToken, closeSurvey);
 app.delete('/api/surveys/:id', authenticateToken, deleteSurvey);
 
 
-app.listen(3000, () => console.log('Сервер запущен на порту 3000'));
+app.get('/api/surveys/:id/analytics', authenticateToken, getSurveyAnalytics);
+app.get('/api/surveys/:id/export', authenticateToken, exportSurveyResults);
+app.get('/api/surveys/:id/responses', authenticateToken, getSurveyResponses);
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Сервер запущен на порту ${PORT}`));

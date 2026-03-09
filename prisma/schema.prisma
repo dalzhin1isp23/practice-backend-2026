@@ -52,7 +52,7 @@ model Question {
 
   typeId   Int
   type     Type     @relation(fields: [typeId], references: [id])
-  order    Int      // Порядок отображения
+  order    Int      
   text     String
   
   surveyId Int
