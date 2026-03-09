@@ -1,0 +1,50 @@
+$kind: http-example
+request:
+  url: http://localhost:3000/api/auth/
+  method: POST
+  body:
+    type: json
+    content: "{\r
+
+      \  \"name\": \"Опрос по архитектуре ПО\",\r
+
+      \  \"description\": \"Оценка знаний паттернов проектирования\",\r
+
+      \  \"questions\": [\r
+
+      \    {\r
+
+      \      \"text\": \"Что такое Singleton?\",\r
+
+      \      \"typeId\": 1,\r
+
+      \      \"order\": 1,\r
+
+      \      \"options\": [\r
+
+      \        { \"text\": \"Порождающий паттерн\", \"order\": 1 },\r
+
+      \        { \"text\": \"Структурный паттерн\", \"order\": 2 }\r
+
+      \      ]\r
+
+      \    }\r
+
+      \  ]\r
+
+      }"
+response:
+  statusCode: 401
+  statusText: Unauthorized
+  headers:
+    x-powered-by: Express
+    content-type: application/json; charset=utf-8
+    content-length: "76"
+    etag: W/"4c-6A0bKTOfOGEvfT0OKRnb/wz14ig"
+    date: Mon, 09 Mar 2026 12:36:28 GMT
+    connection: keep-alive
+    keep-alive: timeout=5
+  body:
+    type: json
+    content: '{"error":"Доступ запрещен. Войдите в систему."}'
+order: 1773059884366

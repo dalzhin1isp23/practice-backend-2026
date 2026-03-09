@@ -26,7 +26,7 @@
     </li>
 </ol>
 
-<img src="schema.png" alt="cхема внутри папки">
+<img src="/img/schema.png" alt="cхема внутри папки">
 
 <h3>Эндпоинты:</h3>
 <ol>
