@@ -304,23 +304,40 @@ export const getAllPublicSurveys = async (req: any, res: any) => {
     }
   });
 };
-
 export const getAllPublicSurveys = async (req: any, res: any) => {
-
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
   const skip = (page - 1) * limit;
 
-  const surveys = await prisma.survey.findMany({
-    where: { 
+  try {
+    const whereCondition = { 
       statusId: 2, 
       NOT: { authorId: req.user.userId } 
-    },
-    include: { author: { select: { name: true } } },
-    orderBy: { createdAt: 'desc' }, 
-    skip: skip,
-    take: limit
-  });
+    };
+
+    const [surveys, total] = await Promise.all([
+      prisma.survey.findMany({
+        where: whereCondition,
+        include: { author: { select: { name: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit
+      }),
+      prisma.survey.count({ where: whereCondition })
+]);
+
+    res.json({
+      data: surveys,
+      meta: {
+        total,
+        page,
+        lastPage: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Ошибка при получении списка опросов" });
+  }
+};
 
   const total = await prisma.survey.count({ where: { statusId: 2 } });
 

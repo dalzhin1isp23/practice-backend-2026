@@ -1,8 +1,13 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key';
+
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export const authenticateToken = (req: any, res: any, next: any) => {
+  if (!JWT_SECRET) {
+    return res.status(500).json({ error: 'Конфигурация сервера не завершена (JWT_SECRET).' });
+  }
+
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 

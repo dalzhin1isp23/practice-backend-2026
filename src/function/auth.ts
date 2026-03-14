@@ -4,8 +4,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
-
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export const register = async (req: any, res: any) => {
   const { email, password, name } = req.body;
@@ -24,6 +23,9 @@ export const register = async (req: any, res: any) => {
 
 export const login = async (req: any, res: any) => {
   const { email, password } = req.body;
+  
+  if (!JWT_SECRET) return res.status(500).json({ error: 'Ошибка сервера' });
+
   const user = await prisma.user.findUnique({ where: { email } });
 
   if (user && (await bcrypt.compare(password, user.password))) {
