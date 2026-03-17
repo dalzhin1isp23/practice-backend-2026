@@ -14,8 +14,7 @@ async function main() {
     });
   }
 
-
-  const types = ['Одиночный выбор', 'Множественный выбор'];
+  const types = ['Текстовый ответ', 'Одиночный выбор', 'Множественный выбор'];
   for (const name of types) {
     await prisma.type.upsert({
       where: { name },
@@ -27,6 +26,7 @@ async function main() {
   const statusList = await prisma.status.findMany();
   const typeList = await prisma.type.findMany();
   const password = await bcrypt.hash('password123', 10);
+  const adminPassword = await bcrypt.hash('admin123', 10);
 
 
   const users = [];
@@ -38,10 +38,24 @@ async function main() {
         email: `user${i}@example.com`,
         name: `Пользователь ${i}`,
         password: password,
+        roleId: 1,
       },
     });
     users.push(user);
   }
+
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@example.com' },
+    update: {},
+    create: {
+      email: 'admin@example.com',
+      name: 'Администратор',
+      password: adminPassword,
+      roleId: 2,
+    },
+  });
+  console.log('Администратор создан: admin@example.com / admin123');
+
 
   const surveyConfigs = [
     {
@@ -53,7 +67,12 @@ async function main() {
           options: ['JavaScript', 'Python', 'TypeScript', 'Java', 'Другой'],
         },
         {
-          text: 'Какие языки вы изучали?',
+          text: 'Какие языки вы изучали? (перечислите)',
+          type: 'Текстовый ответ',
+          options: [],
+        },
+        {
+          text: 'Какие языки хотите изучить?',
           type: 'Множественный выбор',
           options: ['JavaScript', 'Python', 'TypeScript', 'Java', 'C#', 'Go', 'Rust'],
         },
@@ -71,6 +90,11 @@ async function main() {
           text: 'Что мешает вам спать?',
           type: 'Множественный выбор',
           options: ['Стресс', 'Гаджеты', 'Шум', 'Кофеин', 'Ничего'],
+        },
+        {
+          text: 'Ваши советы для улучшения сна',
+          type: 'Текстовый ответ',
+          options: [],
         },
       ],
     },
@@ -102,6 +126,11 @@ async function main() {
           type: 'Множественный выбор',
           options: ['Бег', 'Зал', 'Йога', 'Плавание', 'Велоспорт', 'Домашние тренировки'],
         },
+        {
+          text: 'Ваши цели в спорте',
+          type: 'Текстовый ответ',
+          options: [],
+        },
       ],
     },
     {
@@ -131,6 +160,11 @@ async function main() {
           text: 'С кем вы любите путешествовать?',
           type: 'Множественный выбор',
           options: ['Один', 'С семьёй', 'С друзьями', 'С партнёром', 'В группе'],
+        },
+        {
+          text: 'Куда мечтаете поехать?',
+          type: 'Текстовый ответ',
+          options: [],
         },
       ],
     },
@@ -162,6 +196,11 @@ async function main() {
           type: 'Множественный выбор',
           options: ['Код', 'Тексты', 'Дизайн', 'Анализ', 'Обучение', 'Развлечения'],
         },
+        {
+          text: 'Ваши опасения насчёт ИИ',
+          type: 'Текстовый ответ',
+          options: [],
+        },
       ],
     },
     {
@@ -192,15 +231,19 @@ async function main() {
           type: 'Множественный выбор',
           options: ['RPG', 'Шутеры', 'Стратегии', 'Инди', 'Спортивные', 'Головоломки'],
         },
+        {
+          text: 'Ваша любимая игра',
+          type: 'Текстовый ответ',
+          options: [],
+        },
       ],
     },
   ];
 
- 
+
   for (let i = 0; i < 10; i++) {
     const config = surveyConfigs[i];
     const randomAuthor = users[Math.floor(Math.random() * users.length)];
-    
     
     let randomStatus;
     if (i < 4) randomStatus = statusList.find(s => s.name === 'Опубликован');
@@ -239,16 +282,14 @@ async function main() {
       },
     });
 
-   
     if (randomStatus!.name === 'Опубликован' || randomStatus!.name === 'Закрыт') {
       const potentialVoters = users.filter(u => u.id !== randomAuthor.id);
-      const votersCount = Math.floor(Math.random() * 3) + 3; 
+      const votersCount = Math.floor(Math.random() * 3) + 3;
       const selectedVoters = potentialVoters
         .sort(() => 0.5 - Math.random())
         .slice(0, votersCount);
 
       for (const voter of selectedVoters) {
-
         const existingVote = await prisma.vote.findFirst({
           where: {
             surveyId: survey.id,
@@ -260,21 +301,27 @@ async function main() {
         const answers = [];
         for (const question of survey.questions) {
           const questionType = typeList.find(t => t.id === question.typeId);
-          const isMultiple = questionType?.name === 'Множественный выбор';
+          const typeName = questionType?.name;
 
-          if (isMultiple) {
-     
+          if (typeName === 'Текстовый ответ') {
+      
+            answers.push({
+              questionId: question.id,
+              text: `Ответ пользователя на вопрос "${question.text}"`,
+            });
+          } else if (typeName === 'Множественный выбор') {
+
             const selectedOptions = question.options
               .sort(() => 0.5 - Math.random())
               .slice(0, Math.floor(Math.random() * 3) + 1);
             
             answers.push({
               questionId: question.id,
-              optionId: selectedOptions[0].id, 
+              optionIds: selectedOptions.map(o => o.id),
               text: selectedOptions.map(o => o.text).join(', '),
             });
           } else {
-      
+
             const randomOption = question.options[Math.floor(Math.random() * question.options.length)];
             answers.push({
               questionId: question.id,
@@ -295,7 +342,8 @@ async function main() {
     }
   }
 
-
+  console.log(' Сидер завершён');
+  console.log(' Типы вопросов: 1=Текст, 2=Одиночный выбор, 3=Множественный выбор');
 }
 
 main()
