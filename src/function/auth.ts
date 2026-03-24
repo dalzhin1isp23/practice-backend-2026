@@ -1,4 +1,4 @@
-import 'dotenv/config'; 
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -19,7 +19,6 @@ export const register = async (req: any, res: any) => {
     res.status(400).json({ error: 'Email уже занят' });
   }
 };
-
 
 export const login = async (req: any, res: any) => {
   const { email, password } = req.body;

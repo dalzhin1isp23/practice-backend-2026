@@ -1,6 +1,7 @@
 
 import 'dotenv/config';
 import express from 'express';
+
 import { register, login, getProfile, updateProfile } from './function/auth';
 import { authenticateToken } from './function/token';
 import { 
@@ -12,9 +13,11 @@ import {
 import { 
   verifyAdmin, getAllSurveysAdmin, deleteSurveyAdmin, updateSurveyStatusAdmin 
 } from './function/admin';
-
+import{starts} from './function/starts'
 const index = express();
 index.use(express.json());
+
+index.get('/',starts);
 
 index.post('/api/auth/register', register);
 index.post('/api/auth/login', login);
@@ -45,9 +48,9 @@ index.patch('/api/admin/surveys/:id/status', authenticateToken, verifyAdmin, upd
 
 const PORT = process.env.PORT || 3000;
 
-if (process.env.NODE_ENV !== 'test' && require.main === module) {
+if (process.env.NODE_ENV !== 'test') {
   index.listen(PORT, () => {
-    console.log(`🚀 Сервер запущен на порту ${PORT}`);
+    console.log(`запущен - http://localhost:3000`);
   });
 }
 

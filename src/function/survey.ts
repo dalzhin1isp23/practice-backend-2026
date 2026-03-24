@@ -1,4 +1,3 @@
-// src/function/survey.ts
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
@@ -14,7 +13,7 @@ export const getMySurveys = async (req: any, res: any) => {
         where: { authorId },
         include: {
           status: true,
-          _count: { select: { questions: true, votes: true } }
+          _count: { select: { question: true, vote: true } }
         },
         orderBy: { id: 'desc' },
         skip,
@@ -32,48 +31,62 @@ export const getMySurveys = async (req: any, res: any) => {
   }
 };
 
-export const createSurvey = async (req: any, res: any) => {
-  if (req.user.roleId === 2) {
-    return res.status(403).json({ error: "Администраторы не могут создавать опросы" });
-  }
-
-  const { name, description, questions } = req.body;
-  const authorId = req.user.userId;
-
+export const createSurvey = async (req: Request, res: Response) => {
   try {
-    const TEXT_TYPE_ID = 1;
+    const { name, description, questions } = req.body;
+    const authorId = (req as any).user.userId;
+    const userRoleId = (req as any).user.roleId;
 
-    for (const q of questions) {
-      if (q.typeId === TEXT_TYPE_ID && q.options && q.options.length > 0) {
-        return res.status(400).json({ error: "К текстовому вопросу нельзя добавлять варианты ответов" });
-      }
-      if (q.typeId !== TEXT_TYPE_ID && (!q.options || q.options.length === 0)) {
-        return res.status(400).json({ error: "К вопросу с выбором необходимо добавить варианты ответов" });
-      }
+   
+    if (userRoleId === 1) {
+      return res.status(403).json({ error: 'Администраторы не могут создавать опросы' });
+    }
+
+    if (!name || !Array.isArray(questions) || questions.length === 0) {
+      return res.status(400).json({ error: "Некорректные данные опроса" });
     }
 
     const newSurvey = await prisma.survey.create({
-      data: {  // ✅ ПРАВИЛЬНО: ключ `data`
-        name,
-        description,
-        authorId,
-        statusId: 1,
-        questions: {
-          create: questions.map((q: any) => ({
-            text: q.text,
-            typeId: q.typeId,
-            order: q.order,
-            options: {
-              create: q.options.map((opt: any) => ({
-                text: opt.text,
-                order: opt.order
-              }))
+  data: {
+    name,
+    description,
+    authorId,
+    statusId: 1,
+    question: { 
+      create: questions.map((q: any, index: number) => ({
+        text: q.text,
+        typeId: q.typeId,
+        order: q.order || index + 1,
+        option: q.options?.length
+          ? {
+              create: q.options.map((opt: string, optIndex: number) => ({
+                text: opt,
+                order: optIndex + 1,
+              })),
             }
-          }))
-        }
-      }
-    });
-    res.status(201).json(newSurvey);
+          : undefined,
+      })),
+    },
+  }, 
+  include: {
+    question: {
+      include: { option: true, type: true },
+      orderBy: { order: 'asc' }
+    },
+    user: { select: { id: true, name: true, email: true } },
+    status: true,
+  },
+});
+
+    const response = {
+      ...newSurvey,
+      questions: newSurvey.question,
+      author: newSurvey.user,
+    };
+    delete (response as any).question;
+    delete (response as any).user;
+
+    res.status(201).json(response);
   } catch (error) {
     console.error(error);
     res.status(400).json({ error: "Ошибка при создании опроса" });
@@ -90,7 +103,7 @@ export const publishSurvey = async (req: any, res: any) => {
 
     await prisma.survey.update({
       where: { id: Number(id) },
-      data: { statusId: 2 }  // ✅ ПРАВИЛЬНО: ключ `data`
+      data: { statusId: 2 }
     });
     res.json({ message: "Опрос опубликован" });
   } catch (error) {
@@ -108,7 +121,7 @@ export const closeSurvey = async (req: any, res: any) => {
 
     await prisma.survey.update({
       where: { id: Number(id) },
-      data: { statusId: 3 }  // ✅ ПРАВИЛЬНО: ключ `data`
+      data: { statusId: 3 }
     });
     res.json({ message: "Опрос закрыт" });
   } catch (error) {
@@ -141,17 +154,19 @@ export const getAllPublicSurveys = async (req: any, res: any) => {
     const sortBy = req.query.sortBy || 'id';
     const sortOrder = req.query.sortOrder === 'asc' ? 'asc' : 'desc';
 
+  
     const whereCondition: any = {
-      NOT: { authorId: req.user.userId }
+      authorId: { not: req.user.userId }
     };
 
     if (statusFilter === 'active') whereCondition.statusId = 2;
     else if (statusFilter === 'closed') whereCondition.statusId = 3;
     else if (statusFilter !== 'all') whereCondition.statusId = 2;
 
+  
     const orderBy: any = {};
     if (sortBy === 'votesCount') {
-      orderBy.votes = { _count: sortOrder };
+      orderBy.vote = { _count: sortOrder };
     } else {
       orderBy[sortBy] = sortOrder;
     }
@@ -160,8 +175,8 @@ export const getAllPublicSurveys = async (req: any, res: any) => {
       prisma.survey.findMany({
         where: whereCondition,
         include: {
-          author: { select: { name: true } },
-          _count: { select: { votes: true } }
+          user: { select: { name: true } },
+          _count: { select: { vote: true } }
         },
         orderBy,
         skip,
@@ -178,12 +193,11 @@ export const getAllPublicSurveys = async (req: any, res: any) => {
     res.status(500).json({ error: "Ошибка при получении списка опросов" });
   }
 };
-
 export const getSurveyById = async (req: any, res: any) => {
   try {
     const survey = await prisma.survey.findFirst({
       where: { id: Number(req.params.id), statusId: 2 },
-      include: { questions: { include: { options: true } } }
+      include: { question: { include: { option: true } } }
     });
     survey ? res.json(survey) : res.status(404).json({ error: "Опрос не найден" });
   } catch (error) {
@@ -195,7 +209,7 @@ export const getSurveyByName = async (req: any, res: any) => {
   try {
     const survey = await prisma.survey.findFirst({
       where: { name: { contains: req.params.name }, statusId: 2 },
-      include: { questions: { include: { options: true } } }
+      include: { question: { include: { option: true } } }
     });
     res.json(survey);
   } catch (error) {
@@ -226,7 +240,7 @@ export const updateSurvey = async (req: any, res: any) => {
 
     const updated = await prisma.survey.update({
       where: { id: Number(id) },
-      data: { name, description }  // ✅ ПРАВИЛЬНО: ключ `data`
+      data: { name, description }
     });
     res.json(updated);
   } catch (e) {
@@ -242,7 +256,7 @@ export const submitVote = async (req: any, res: any) => {
   try {
     const survey = await prisma.survey.findUnique({
       where: { id: Number(id) },
-      include: { questions: { include: { options: true } } }
+      include: { question: { include: { option: true } } }
     });
 
     if (!survey || survey.statusId !== 2) {
@@ -267,7 +281,7 @@ export const submitVote = async (req: any, res: any) => {
     const MULTIPLE_CHOICE_TYPE_ID = 3;
 
     for (const answer of answers) {
-      const question = survey.questions.find((q: any) => q.id === answer.questionId);
+      const question = survey.question.find((q: any) => q.id === answer.questionId);
       if (!question) {
         return res.status(400).json({ error: `Вопрос ${answer.questionId} не найден` });
       }
@@ -288,7 +302,7 @@ export const submitVote = async (req: any, res: any) => {
     }
 
     const newVote = await prisma.vote.create({
-      data: {  // ✅ ПРАВИЛЬНО: ключ `data`
+      data: {
         surveyId: Number(id),
         userId: userId,
         answer: answers
@@ -309,7 +323,7 @@ export const getSurveyResponses = async (req: any, res: any) => {
   try {
     const survey = await prisma.survey.findUnique({
       where: { id: Number(id) },
-      include: { questions: true }
+      include: { question: true }
     });
 
     if (!survey || survey.authorId !== authorId)
@@ -354,8 +368,8 @@ export const exportSurveyResults = async (req: any, res: any) => {
     const survey = await prisma.survey.findUnique({
       where: { id: Number(id) },
       include: {
-        questions: { include: { options: true } },
-        votes: true
+        question: { include: { option: true } },
+        vote: true
       }
     });
 
@@ -373,21 +387,21 @@ export const getSurveyAnalytics = async (req: any, res: any) => {
     const survey = await prisma.survey.findUnique({
       where: { id: Number(id) },
       include: {
-        questions: {
-          include: { options: true }
+        question: {
+          include: { option: true }
         },
-        votes: true
+        vote: true
       }
     });
 
     if (!survey) return res.status(404).json({ error: "Опрос не найден" });
 
-    const totalVotes = survey.votes.length;
+    const totalVotes = survey.vote.length;
 
-    const stats = survey.questions.map(question => {
-      const questionAnswers = survey.votes.map((v: any) => v.answer).flat();
+    const stats = survey.question.map(question => {
+      const questionAnswers = survey.vote.map((v: any) => v.answer).flat();
 
-      const optionsStats = question.options.map(opt => {
+      const optionsStats = question.option.map(opt => {
         const count = questionAnswers.filter((a: any) =>
           a.questionId === question.id && (a.optionId === opt.id || a.optionIds?.includes(opt.id))
         ).length;

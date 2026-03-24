@@ -1,6 +1,6 @@
 import request from 'supertest';
-import { prisma, TEST_USER, TEST_ADMIN, generateToken, cleanupDatabase } from '../setup';
-import index from '../../src/index';
+import { prisma, TEST_USER, TEST_ADMIN, generateToken, cleanupDatabase } from '../setup'; 
+import index from '../../src/index'; 
 
 describe('🔐 Auth Module', () => {
   beforeAll(async () => {
@@ -13,10 +13,12 @@ describe('🔐 Auth Module', () => {
 
   describe('POST /api/auth/register', () => {
     it('должен зарегистрировать нового пользователя', async () => {
+      const uniqueEmail = `newuser-${Date.now()}@test.com`;
+      
       const res = await request(index)
         .post('/api/auth/register')
         .send({
-          email: 'newuser@test.com',
+          email: uniqueEmail,
           password: 'secure123',
           name: 'New User',
         });
@@ -27,20 +29,20 @@ describe('🔐 Auth Module', () => {
     });
 
     it('должен отклонить регистрацию с занятым email', async () => {
-      // Сначала регистрируем
+      const duplicateEmail = `duplicate-${Date.now()}@test.com`;
+      
       await request(index)
         .post('/api/auth/register')
         .send({
-          email: 'duplicate@test.com',
+          email: duplicateEmail,
           password: 'pass123',
           name: 'First',
         });
 
-      // Пытаемся снова с тем же email
       const res = await request(index)
         .post('/api/auth/register')
         .send({
-          email: 'duplicate@test.com',
+          email: duplicateEmail,
           password: 'pass456',
           name: 'Second',
         });
@@ -52,11 +54,12 @@ describe('🔐 Auth Module', () => {
 
   describe('POST /api/auth/login', () => {
     it('должен выдать токен при правильных данных', async () => {
-      // Создаём пользователя
+      const loginEmail = `login-${Date.now()}@test.com`;
+      
       await request(index)
         .post('/api/auth/register')
         .send({
-          email: 'login@test.com',
+          email: loginEmail,
           password: 'loginpass',
           name: 'Login Test',
         });
@@ -64,7 +67,7 @@ describe('🔐 Auth Module', () => {
       const res = await request(index)
         .post('/api/auth/login')
         .send({
-          email: 'login@test.com',
+          email: loginEmail,
           password: 'loginpass',
         });
 
@@ -73,10 +76,20 @@ describe('🔐 Auth Module', () => {
     });
 
     it('должен отклонить неверный пароль', async () => {
+      const loginEmail = `login-wrong-${Date.now()}@test.com`;
+      
+      await request(index)
+        .post('/api/auth/register')
+        .send({
+          email: loginEmail,
+          password: 'loginpass',
+          name: 'Login Test',
+        });
+
       const res = await request(index)
         .post('/api/auth/login')
         .send({
-          email: 'login@test.com',
+          email: loginEmail,
           password: 'wrongpassword',
         });
 
@@ -90,7 +103,7 @@ describe('🔐 Auth Module', () => {
       const user = await prisma.user.findFirst({ where: { email: TEST_USER.email } });
       if (!user) return;
 
-      const token = generateToken(user.id, user.roleId);
+      const token = await generateToken(user.id, user.roleId);
 
       const res = await request(index)
         .get('/api/profile')

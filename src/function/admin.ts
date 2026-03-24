@@ -7,8 +7,7 @@ export const verifyAdmin = (req: any, res: any, next: any) => {
     return res.status(401).json({ error: 'Требуется авторизация' });
   }
 
-
-  const ADMIN_ROLE_ID = 2; 
+  const ADMIN_ROLE_ID = 1;
 
   if (req.user.roleId !== ADMIN_ROLE_ID) {
     return res.status(403).json({ error: 'Доступ запрещен. Требуются права администратора.' });
@@ -17,36 +16,45 @@ export const verifyAdmin = (req: any, res: any, next: any) => {
   next();
 };
 
-
-export const getAllSurveysAdmin = async (req: any, res: any) => {
+export const getAllSurveysAdmin = async (req: Request, res: Response) => {
   try {
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 20;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 20;
     const skip = (page - 1) * limit;
 
-    const whereCondition = {}; 
+    const whereCondition = {};
 
     const [surveys, total] = await Promise.all([
       prisma.survey.findMany({
         where: whereCondition,
-        include: { 
-          author: { select: { id: true, name: true, email: true } },
+        include: {
+          user: { select: { id: true, name: true, email: true } },
           status: { select: { name: true } },
-          _count: { select: { votes: true, questions: true } }
+          _count: { select: { vote: true, question: true } },
         },
         skip,
-        take: limit
+        take: limit,
+        orderBy: { id: 'desc' },
       }),
-      prisma.survey.count({ where: whereCondition })
+      prisma.survey.count({ where: whereCondition }),
     ]);
 
+    const formattedSurveys = surveys.map(s => ({
+      ...s,
+      author: s.user,
+      questionsCount: s._count.question,
+      votesCount: s._count.vote,
+    }));
+    formattedSurveys.forEach(s => {
+      delete (s as any).user;
+      delete (s as any)._count;
+    });
+
     res.json({
-      data: surveys,
-      meta: {
-        total,
-        page,
-        lastPage: Math.ceil(total / limit)
-      }
+      surveys: formattedSurveys,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
     console.error(error);
@@ -54,13 +62,12 @@ export const getAllSurveysAdmin = async (req: any, res: any) => {
   }
 };
 
-
 export const deleteSurveyAdmin = async (req: any, res: any) => {
   const { id } = req.params;
 
   try {
     const surveyId = Number(id);
-    
+
     const survey = await prisma.survey.findUnique({ where: { id: surveyId } });
     if (!survey) {
       return res.status(404).json({ error: "Опрос не найден" });
@@ -99,13 +106,12 @@ export const updateSurveyStatusAdmin = async (req: any, res: any) => {
       data: { statusId: newStatusId }
     });
 
-    res.json({ 
-      message: "Статус опроса изменен администратором", 
-      survey: updated 
+    res.json({
+      message: "Статус опроса изменен администратором",
+      survey: updated
     });
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Ошибка при обновлении статуса" });
   }
 };
-

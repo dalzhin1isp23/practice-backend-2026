@@ -1,36 +1,40 @@
-// tests/setup.ts
 import { PrismaClient } from '@prisma/client';
-import bcryptLib from 'bcryptjs';
-import * as jwt from 'jsonwebtoken';
 
-export const prisma = new PrismaClient();
-export const JWT_SECRET = process.env.JWT_SECRET || 'test_secret';
+const prisma = new PrismaClient();
+export { prisma };
 
 export const TEST_USER = {
-  email: 'test@example.com',
+  email: 'testuser@example.com',
   password: 'password123',
   name: 'Test User',
-  roleId: 1,
-};
-
-export const TEST_ADMIN = {
-  email: 'admin@test.com',
-  password: 'admin123',
-  name: 'Admin',
   roleId: 2,
 };
 
-export const hashPassword = (password: string) => bcryptLib.hash(password, 10);
-export const generateToken = (userId: number, roleId: number) => 
-  jwt.sign({ userId, roleId }, JWT_SECRET);
+export const TEST_ADMIN = {
+  email: 'admin@example.com',
+  password: 'admin123',
+  name: 'Admin User',
+  roleId: 1,
+};
 
-// Простая очистка — только тестовые пользователи
+export const hashPassword = async (password: string): Promise<string> => {
+  const bcrypt = await import('bcryptjs');
+  return bcrypt.default.hash(password, 10);
+};
+
+export const generateToken = async (userId: number, roleId: number, email?: string) => {
+  const jwtModule = await import('jsonwebtoken');
+  const jwt = jwtModule.default;
+  return jwt.sign({ userId, roleId, email }, process.env.JWT_SECRET || 'test_secret', {
+    expiresIn: '1h',
+  });
+};
+
 export const cleanupDatabase = async () => {
-  try {
-    await prisma.user.deleteMany({
-      where: { email: { in: [TEST_USER.email, TEST_ADMIN.email] } }
-    });
-  } catch (e) {
-    // Игнорируем ошибки
-  }
+  try { await prisma.answer.deleteMany(); } catch {}
+  try { await prisma.questionOption.deleteMany(); } catch {}
+  try { await prisma.question.deleteMany(); } catch {}
+  try { await prisma.survey.deleteMany(); } catch {}
+  try { await prisma.user.deleteMany(); } catch {}
+  try { await prisma.role.deleteMany(); } catch {}
 };

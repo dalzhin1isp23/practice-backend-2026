@@ -1,4 +1,3 @@
-// tests/utils/testHelpers.ts
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
@@ -11,32 +10,53 @@ export const createTestSurvey = async (authorId: number, overrides: any = {}) =>
       statusId: 1,
       ...overrides,
     },
-    include: { questions: { include: { options: true } } },
+    include: {
+      question: {
+        include: { option: true, type: true },
+        orderBy: { order: 'asc' }
+      },
+      user: { select: { id: true, email: true, name: true } },
+      status: true,
+    },
   });
 };
 
-export const createSurveyWithQuestions = async (authorId: number, questions: any[]) => {
+export const createSurveyWithQuestions = async (
+  authorId: number,
+  questions: Array<{
+    text: string;
+    typeId: number;
+    options?: string[];
+  }>
+) => {
   return prisma.survey.create({
     data: {
       name: 'Опрос с вопросами',
       description: 'Тест',
       authorId,
       statusId: 2,
-      questions: {
-        create: questions.map((q: any, index: number) => ({
+      question: {
+        create: questions.map((q, index) => ({
           text: q.text,
           typeId: q.typeId,
           order: index + 1,
-          options: q.options?.length > 0 ? {
-            create: q.options.map((opt: any, optIndex: number) => ({
-              text: opt,
-              order: optIndex + 1,
-            })),
-          } : undefined,
+          option: q.options?.length
+            ? {
+                create: q.options.map((opt, optIndex) => ({
+                  text: opt,
+                  order: optIndex + 1,
+                })),
+              }
+            : undefined,
         })),
       },
     },
-    include: { questions: { include: { options: true } } },
+    include: {
+      question: {
+        include: { option: true },
+        orderBy: { order: 'asc' }
+      }
+    },
   });
 };
 
