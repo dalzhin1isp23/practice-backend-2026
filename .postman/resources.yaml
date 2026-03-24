@@ -1,0 +1,14 @@
+# Use this workspace to collaborate
+workspace:
+  id: de37598a-b3a9-4c63-8110-2acf7d6a011e
+
+# Each entry here maps a local resource to one or more corresponding objects in Postman Cloud
+cloudResources:
+  collections:
+    ..\postman\collections\Survey Dalzhin API: c717426d-5116-4d07-a38c-6784da23354e
+
+# All resources in the `postman/` folder are automatically registered in Local View.
+# Point to additional files outside the `postman/` folder to register them individually. Example:
+#localResources:
+#  collections:
+#    - ../tests/E2E Test Collection/

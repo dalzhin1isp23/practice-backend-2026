@@ -2,40 +2,89 @@
   "name": "survey_dalzhin",
   "version": "1.0.0",
   "description": "<h1>Тема - Сервис для выполнения опросов</h1> <h2>Автор - Далжин Яков</h2>",
-  "main": "index.ts",
+  "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest --runInBand",
+    "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest --watch --runInBand",
+    "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules npx jest --coverage --runInBand"
+  },
+  "jest": {
+    "preset": "ts-jest/presets/default-esm",
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.ts"
+    ],
+    "extensionsToTreatAsEsm": [
+      ".ts"
+    ],
+    "transform": {
+      "^.+\\.ts$": [
+        "ts-jest",
+        {
+          "useESM": true,
+          "tsconfig": "tsconfig.json",
+          "isolatedModules": true,
+          "diagnostics": false
+        }
+      ]
+    },
+    "moduleNameMapper": {
+      "^(\\.{1,2}/.*)\\.js$": "$1",
+      "^@/(.*)$": "<rootDir>/src/$1"
+    },
+    "setupFilesAfterEnv": [
+      "<rootDir>/tests/setup.ts"
+    ],
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
+    "verbose": true,
+    "forceExit": true,
+    "clearMocks": true
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/demyurg/practice-backend-2026.git"
   },
   "keywords": [],
-  "author": "",
+  "author": "Далжин Яков",
   "license": "ISC",
   "bugs": {
     "url": "https://github.com/demyurg/practice-backend-2026/issues"
   },
   "homepage": "https://github.com/demyurg/practice-backend-2026#readme",
   "devDependencies": {
-    "@types/bcrypt": "^6.0.0",
+    "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^25.3.3",
-    "jest": "^30.2.0",
-    "prisma": "^7.4.2",
-    "ts-node-dev": "^2.0.0",
+    "@types/node": "^25.5.0",
+    "@types/supertest": "^7.2.0",
+    "cross-env": "^10.1.0",
+    "prisma": "^6.19.2",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@prisma/client": "^7.4.2",
-    "bcrypt": "^6.0.0",
+    "@prisma/client": "^6.19.2",
+    "bcryptjs": "^3.0.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   }
 }
