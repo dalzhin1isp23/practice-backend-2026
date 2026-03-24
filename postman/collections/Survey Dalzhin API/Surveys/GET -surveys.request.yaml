@@ -1,0 +1,10 @@
+$kind: http-request
+name: GET /surveys
+url: "{{baseUrl}}/api/surveys?page=1&limit=10"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+queryParams:
+  page: "1"
+  limit: "10"
+order: 1000

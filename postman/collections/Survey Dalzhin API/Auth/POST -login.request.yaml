@@ -1,0 +1,23 @@
+$kind: http-request
+name: POST /login
+url: "{{baseUrl}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+      "email": "user@test.com",
+      "password": "secure123"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      var jsonData = pm.response.json();
+      if (jsonData.token) {
+          pm.collectionVariables.set('token', jsonData.token);
+          console.log('Token saved');
+      }
+    language: text/javascript
+order: 2000
